@@ -4,32 +4,70 @@ import { toolDefinitions, executeTool } from '../tools/index.js'
 
 export const chatRouter = Router()
 
+const MAX_ITERATIONS = 10
+
 chatRouter.post('/chat', async (req, res) => {
-  const { message, config, connectors } = req.body
+  const { message, messages: incomingMessages, config, connectors } = req.body
 
   try {
     const client = createClaudeClient(config)
 
-    const response = await client.messages.create({
-      model: config.model,
-      max_tokens: 4096,
-      system: config.systemPrompt || undefined,
-      tools: toolDefinitions,
-      messages: [{ role: 'user', content: message }],
-    })
+    // Support both single message and conversation history
+    let messages = incomingMessages || [{ role: 'user', content: message }]
 
-    // Handle tool use in the response
-    const toolResults = []
-    for (const block of response.content) {
-      if (block.type === 'tool_use') {
-        const result = await executeTool(block.name, block.input, connectors)
-        toolResults.push({ tool: block.name, result })
+    const toolCalls = []
+    let response
+    let iterations = 0
+
+    while (iterations < MAX_ITERATIONS) {
+      iterations++
+
+      response = await client.messages.create({
+        model: config.model,
+        max_tokens: 4096,
+        system: config.systemPrompt || undefined,
+        tools: toolDefinitions,
+        messages,
+      })
+
+      // If Claude didn't request any tools, we're done
+      if (response.stop_reason !== 'tool_use') break
+
+      // Execute each tool Claude requested
+      const toolResultBlocks = []
+      for (const block of response.content) {
+        if (block.type === 'tool_use') {
+          let result
+          try {
+            result = await executeTool(block.name, block.input, connectors)
+          } catch (err) {
+            result = { error: err.message }
+          }
+
+          toolCalls.push({ tool: block.name, input: block.input, result })
+          toolResultBlocks.push({
+            type: 'tool_result',
+            tool_use_id: block.id,
+            content: JSON.stringify(result),
+          })
+        }
       }
+
+      // Append assistant response + tool results to messages for next iteration
+      messages = [
+        ...messages,
+        { role: 'assistant', content: response.content },
+        { role: 'user', content: toolResultBlocks },
+      ]
     }
 
+    // Extract final text from the last response
+    const textBlocks = response.content.filter(b => b.type === 'text')
+    const finalText = textBlocks.map(b => b.text).join('\n')
+
     res.json({
-      content: response.content,
-      toolResults,
+      content: finalText,
+      toolCalls,
     })
   } catch (err) {
     res.status(500).json({ error: err.message })

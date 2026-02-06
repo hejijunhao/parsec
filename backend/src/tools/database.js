@@ -1,3 +1,10 @@
+import pg from 'pg'
+
+const ALLOWED_PREFIXES = ['SELECT', 'WITH', 'EXPLAIN', 'SHOW']
+const QUERY_TIMEOUT_MS = 30000
+const CONNECTION_TIMEOUT_MS = 10000
+const DEFAULT_ROW_LIMIT = 500
+
 export const definition = {
   name: 'query_database',
   description: 'Execute a read-only SQL query against the connected database',
@@ -10,10 +17,39 @@ export const definition = {
   }
 }
 
+function validateQuery(query) {
+  const normalized = query.trim().toUpperCase()
+  if (!ALLOWED_PREFIXES.some(p => normalized.startsWith(p))) {
+    throw new Error('Only read-only queries are allowed (SELECT, WITH, EXPLAIN, SHOW)')
+  }
+}
+
+function applyRowLimit(query) {
+  if (!/LIMIT\s+\d+/i.test(query)) {
+    return `${query.replace(/;\s*$/, '')} LIMIT ${DEFAULT_ROW_LIMIT}`
+  }
+  return query
+}
+
 export async function execute(input, config) {
-  // TODO: implement with pg client
-  // - Connect using config.connectionString
-  // - Run read-only query (SET TRANSACTION READ ONLY)
-  // - Return rows
-  throw new Error('Database tool not yet implemented')
+  validateQuery(input.query)
+
+  const query = applyRowLimit(input.query)
+  const client = new pg.Client({
+    connectionString: config.connectionString,
+    connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,
+  })
+
+  try {
+    await client.connect()
+    await client.query(`SET statement_timeout = ${QUERY_TIMEOUT_MS}`)
+    await client.query('BEGIN TRANSACTION READ ONLY')
+    const result = await client.query(query)
+    await client.query('COMMIT')
+    return { rows: result.rows, rowCount: result.rowCount }
+  } catch (err) {
+    throw new Error(`Database query failed: ${err.message}`)
+  } finally {
+    await client.end().catch(() => {})
+  }
 }

@@ -8,9 +8,10 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "express": "^4.21.0",
-    "cors": "^2.8.5",
     "@anthropic-ai/sdk": "^0.39.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "fast-glob": "^3.3.3",
     "pg": "^8.13.0"
   }
 }
