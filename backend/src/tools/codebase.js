@@ -1,5 +1,5 @@
 import fg from 'fast-glob'
-import { readFile } from 'fs/promises'
+import { readFile, access } from 'fs/promises'
 import { resolve } from 'path'
 
 const MAX_FILES = 100
@@ -33,6 +33,13 @@ function isBinary(filePath) {
 
 export async function execute(input, config) {
   const basePath = resolve(config.path)
+
+  try {
+    await access(basePath)
+  } catch {
+    throw new Error(`Codebase path does not exist or is not accessible: ${config.path}`)
+  }
+
   const pattern = input.pattern || '**/*'
 
   // Find matching files

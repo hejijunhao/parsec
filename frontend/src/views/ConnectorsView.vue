@@ -10,7 +10,7 @@
         <select v-model="store.connectors.database.type">
           <option value="">Select...</option>
           <option value="postgresql">PostgreSQL</option>
-          <option value="mysql">MySQL</option>
+          <option value="mysql" disabled>MySQL (coming soon)</option>
         </select>
       </label>
       <label>

@@ -9,6 +9,19 @@ const MAX_ITERATIONS = 10
 chatRouter.post('/chat', async (req, res) => {
   const { message, messages: incomingMessages, config, connectors } = req.body
 
+  if (!config?.apiKey) {
+    return res.status(400).json({ error: 'Missing Claude API key — configure it in Agent Config' })
+  }
+  if (!config.model) {
+    return res.status(400).json({ error: 'Missing model selection — configure it in Agent Config' })
+  }
+  if (!message && !incomingMessages?.length) {
+    return res.status(400).json({ error: 'No message provided' })
+  }
+  if (!connectors || typeof connectors !== 'object') {
+    return res.status(400).json({ error: 'Missing connector configuration — set up at least one source in Connectors' })
+  }
+
   try {
     const client = createClaudeClient(config)
 

@@ -18,23 +18,31 @@ export const definition = {
 }
 
 function validateQuery(query) {
-  const normalized = query.trim().toUpperCase()
+  const trimmed = query.trim().replace(/;\s*$/, '')
+  const normalized = trimmed.toUpperCase()
+
   if (!ALLOWED_PREFIXES.some(p => normalized.startsWith(p))) {
     throw new Error('Only read-only queries are allowed (SELECT, WITH, EXPLAIN, SHOW)')
   }
+
+  if (trimmed.includes(';')) {
+    throw new Error('Multiple statements are not allowed')
+  }
+
+  return trimmed
 }
 
 function applyRowLimit(query) {
   if (!/LIMIT\s+\d+/i.test(query)) {
-    return `${query.replace(/;\s*$/, '')} LIMIT ${DEFAULT_ROW_LIMIT}`
+    return `${query} LIMIT ${DEFAULT_ROW_LIMIT}`
   }
   return query
 }
 
 export async function execute(input, config) {
-  validateQuery(input.query)
+  const validated = validateQuery(input.query)
 
-  const query = applyRowLimit(input.query)
+  const query = applyRowLimit(validated)
   const client = new pg.Client({
     connectionString: config.connectionString,
     connectionTimeoutMillis: CONNECTION_TIMEOUT_MS,

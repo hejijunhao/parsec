@@ -1,5 +1,6 @@
 # Changelog
 
+- **0.1.5** — Post-review security and robustness fixes (P0–P3)
 - **0.1.4** — Wire up chat UI with agentic tool-use loop (frontend + backend)
 - **0.1.3** — Implement `fetch_logs` tool with Vercel provider
 - **0.1.2** — Implement `search_codebase` tool with file and content search
@@ -91,3 +92,35 @@ Connected the frontend chat interface to the backend agentic loop, completing th
 - Messages differentiated by role (user, assistant, error)
 - Collapsible tool call details on assistant messages (name, input, result)
 - Auto-scroll to latest message
+
+---
+
+## 0.1.5 — Post-Review Fixes
+
+Security and robustness fixes from code review of workstreams 01–04.
+
+### P0 — SQL Injection (`database.js`)
+- `validateQuery()` now strips trailing semicolon, then rejects queries containing internal semicolons (blocks statement stacking attacks like `SELECT 1; COMMIT; DROP TABLE`)
+- `applyRowLimit()` receives the already-clean string, no longer strips semicolons itself
+
+### P1 — Timeframe Cap Bypass (`logs.js`)
+- Validates computed `durationMs` against the 30-day max instead of checking only the `d` unit — blocks `744h`, `44640m` etc.
+- Rejects zero-duration timeframes (`0h`, `0m`, `0d`)
+
+### P1 — Request Body Validation (`chat.js`)
+- Added early 400 responses for missing `apiKey`, `model`, `messages`, and `connectors` with actionable error messages
+
+### P2 — Timestamp Crash Guard (`logs.js`)
+- Wrapped `new Date(e.timestamp).toISOString()` in try/catch — malformed entries return `null` timestamp instead of crashing
+
+### P2 — CSS + Auto-Scroll (`AgentView.vue`)
+- Added scoped `<style>` block with flex layout, `overflow-y: auto` on `.messages` (fixes auto-scroll), role-based backgrounds, and `max-height: 200px` on tool result containers
+
+### P2 — MySQL Option (`ConnectorsView.vue`)
+- Disabled MySQL dropdown option with "coming soon" label
+
+### P3 — Codebase Path Check (`codebase.js`)
+- Added `fs.access()` check at top of `execute()` — descriptive error if path doesn't exist
+
+### P3 — Tool Context Note (`AgentView.vue`)
+- Added tip above input: "include full context in each message — the agent does not recall tool data from earlier turns"

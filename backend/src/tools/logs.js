@@ -23,7 +23,12 @@ function parseTimeframe(timeframe = '1h') {
   const multipliers = { m: 60_000, h: 3_600_000, d: 86_400_000 }
   const durationMs = parseInt(amount) * multipliers[unit]
 
-  if (unit === 'd' && parseInt(amount) > MAX_TIMEFRAME_DAYS) {
+  if (durationMs <= 0) {
+    throw new Error('Timeframe must be greater than zero')
+  }
+
+  const maxDurationMs = MAX_TIMEFRAME_DAYS * 86_400_000
+  if (durationMs > maxDurationMs) {
     throw new Error(`Timeframe too large. Maximum is ${MAX_TIMEFRAME_DAYS}d`)
   }
 
@@ -97,14 +102,23 @@ export async function execute(input, config) {
   entries = entries.slice(0, MAX_ENTRIES)
 
   // Format for Claude
-  const formatted = entries.map(e => ({
-    timestamp: new Date(e.timestamp).toISOString(),
-    level: e.level || 'info',
-    message: (e.message || '').slice(0, MAX_MESSAGE_LENGTH),
-    source: e.source,
-    statusCode: e.statusCode,
-    requestId: e.requestId,
-  }))
+  const formatted = entries.map(e => {
+    let timestamp
+    try {
+      timestamp = new Date(e.timestamp).toISOString()
+    } catch {
+      timestamp = null
+    }
+
+    return {
+      timestamp,
+      level: e.level || 'info',
+      message: (e.message || '').slice(0, MAX_MESSAGE_LENGTH),
+      source: e.source,
+      statusCode: e.statusCode,
+      requestId: e.requestId,
+    }
+  })
 
   return {
     logs: formatted,
