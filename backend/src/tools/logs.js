@@ -37,9 +37,12 @@ function parseTimeframe(timeframe = '1h') {
 }
 
 function validateConfig(config) {
-  if (!config.provider) throw new Error('No log provider configured — set it in the Connectors view')
+  if (!config || !config.provider) throw new Error('No log provider enabled — click a provider in the Connectors view and enable it')
   if (!config.apiKey) throw new Error(`Missing ${config.provider} API key — configure it in the Connectors view`)
-  if (!config.projectId) throw new Error(`Missing ${config.provider} project ID — configure it in the Connectors view`)
+  // projectId check is provider-specific (Vercel needs it, others may not)
+  if (config.provider === 'vercel' && !config.projectId) {
+    throw new Error('Missing Vercel project ID — configure it in the Connectors view')
+  }
 }
 
 async function fetchVercelLogs(config, params) {

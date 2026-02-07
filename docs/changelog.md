@@ -1,11 +1,73 @@
 # Changelog
 
+- **0.1.7** — Multi-provider model selection with researched current models
+- **0.1.6** — Connectors UI refinement (button selectors, multi-provider logs)
 - **0.1.5** — Post-review security and robustness fixes (P0–P3)
 - **0.1.4** — Wire up chat UI with agentic tool-use loop (frontend + backend)
 - **0.1.3** — Implement `fetch_logs` tool with Vercel provider
 - **0.1.2** — Implement `search_codebase` tool with file and content search
 - **0.1.1** — Implement `query_database` tool with read-only PostgreSQL queries
 - **0.1.0** — Initial project scaffolding with 3-tier architecture (frontend, backend, tool adapters)
+
+---
+
+## 0.1.7 — Multi-Provider Model Selection
+
+Redesigned the Agent Config view with a two-tier provider/model selection system.
+
+### Provider Selection
+- Added tab-based provider selector: Anthropic, OpenAI, Google, Mistral
+- API key placeholder updates dynamically per provider
+- Switching provider auto-selects a sensible default model
+
+### Model Cards
+- Replaced dropdown with visual model cards in a responsive grid
+- Each card shows: model name, description, and optional tag (latest/recommended/preview)
+- Color-coded tags: green for latest, white for recommended, amber for preview
+
+### Current Models (researched Feb 2026)
+
+**Anthropic:** Opus 4.6, Sonnet 4.5, Haiku 4.5, Opus 4.5, Sonnet 4
+**OpenAI:** GPT-4.1, GPT-4.1 Mini, GPT-4.1 Nano, GPT-4o, GPT-4o Mini
+**Google:** Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.5 Flash-Lite, Gemini 3 Pro/Flash (preview)
+**Mistral:** Mistral Large, Magistral Medium, Mistral Medium, Mistral Small
+
+### Backend
+- Added provider validation in chat.js — returns helpful error for unimplemented providers
+- Only Anthropic is implemented for MVP; others return a clear "coming soon" message
+
+### Branding
+- Added three-dot parsec logo to header (favicon design)
+- Configured Vite `@` alias for cleaner asset imports
+
+---
+
+## 0.1.6 — Connectors UI Refinement
+
+Redesigned the Connectors view with improved UX patterns for source selection.
+
+### Database Section
+- Replaced dropdown with button-based selection (PostgreSQL active, MySQL "coming soon")
+- Config fields appear only after selecting a database type
+
+### Codebase Section
+- Added three source options as button selectors:
+  - **GitHub URL** — for public repositories (active)
+  - **GitHub Token** — for private repos (coming soon)
+  - **Trajan** — autonomous PM tool integration (coming soon)
+- Updated store structure from `{ path }` to `{ source, url }`
+
+### Server Logs Section
+- Redesigned as a multi-provider grid of expandable cards
+- Users can enable/configure multiple providers simultaneously
+- Added providers: Vercel, Fly.io, Grafana, AWS CloudWatch, Azure Monitor, Google Cloud, Redis, Datadog, Supabase
+- Each provider shows a green checkmark and border when configured
+- Updated store structure to support per-provider configuration
+
+### Backend Compatibility
+- Added `resolveLogsConfig()` in tools/index.js — translates multi-provider config to single-provider format for the tool
+- Added `resolveCodebaseConfig()` — translates new codebase config structure
+- Updated validation in logs.js and codebase.js to handle null configs gracefully
 
 ---
 

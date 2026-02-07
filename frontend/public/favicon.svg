@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background -->
+  <rect width="32" height="32" rx="6" fill="#12121a"/>
+
+  <!-- Three dots representing parsec distance measurement -->
+  <!-- Small dot (near) -->
+  <circle cx="8" cy="16" r="2.5" fill="#4a4a56"/>
+
+  <!-- Medium dot (mid) -->
+  <circle cx="16" cy="16" r="3.5" fill="#8a8a96"/>
+
+  <!-- Large dot (far/focal point) -->
+  <circle cx="24" cy="16" r="4.5" fill="#ffffff"/>
+</svg>

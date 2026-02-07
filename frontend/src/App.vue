@@ -1,7 +1,10 @@
 <template>
   <div id="app">
     <header class="topbar">
-      <span class="wordmark">PARSEC</span>
+      <div class="brand">
+        <img src="@/assets/logo.svg" alt="" class="logo" />
+        <span class="wordmark">PARSEC</span>
+      </div>
       <nav>
         <router-link to="/connectors">Connectors</router-link>
         <router-link to="/config">Config</router-link>
@@ -29,13 +32,24 @@
   flex-shrink: 0;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.logo {
+  height: 18px;
+  width: auto;
+}
+
 .wordmark {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  user-select: none;
 }
 
 nav {

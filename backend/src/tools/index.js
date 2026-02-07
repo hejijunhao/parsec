@@ -10,14 +10,49 @@ const executors = {
   fetch_logs: executeLogs,
 }
 
+/**
+ * Translate the multi-provider logs config into single-provider format.
+ * Returns the first enabled provider's config, or null if none enabled.
+ */
+function resolveLogsConfig(logs) {
+  if (!logs || typeof logs !== 'object') return null
+
+  // Find the first enabled provider
+  for (const [providerName, providerConfig] of Object.entries(logs)) {
+    if (providerConfig?.enabled) {
+      return {
+        provider: providerName,
+        ...providerConfig,
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Translate the new codebase config { source, url } to the format the tool expects.
+ * Currently only github-url is supported, and it passes the URL as the path.
+ */
+function resolveCodebaseConfig(codebase) {
+  if (!codebase || !codebase.source) return null
+
+  // For github-url source, the url field contains the repo URL or local path
+  if (codebase.source === 'github-url') {
+    return { path: codebase.url }
+  }
+
+  // Other sources (github-token, trajan) are not yet implemented
+  return null
+}
+
 export async function executeTool(name, input, connectors) {
   const executor = executors[name]
   if (!executor) throw new Error(`Unknown tool: ${name}`)
 
   const configMap = {
     query_database: connectors.database,
-    search_codebase: connectors.codebase,
-    fetch_logs: connectors.logs,
+    search_codebase: resolveCodebaseConfig(connectors.codebase),
+    fetch_logs: resolveLogsConfig(connectors.logs),
   }
 
   return executor(input, configMap[name])

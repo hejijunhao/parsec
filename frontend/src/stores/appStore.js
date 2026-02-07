@@ -5,14 +5,26 @@ export const useAppStore = defineStore('app', () => {
   // --- Section 1: Connectors (external source configs) ---
   const connectors = ref({
     database: { type: '', connectionString: '' },
-    codebase: { path: '' },
-    logs: { provider: '', apiKey: '', projectId: '' },
+    codebase: { source: '', url: '' }, // source: 'github-url' | 'github-token' | 'trajan'
+    logs: {
+      // Each provider can be independently configured
+      vercel: { enabled: false, apiKey: '', projectId: '' },
+      flyio: { enabled: false, apiKey: '', appName: '' },
+      grafana: { enabled: false, url: '', apiKey: '' },
+      aws: { enabled: false, accessKeyId: '', secretAccessKey: '', region: '', logGroup: '' },
+      azure: { enabled: false, workspaceId: '', sharedKey: '' },
+      gcp: { enabled: false, projectId: '', credentials: '' },
+      redis: { enabled: false, connectionString: '' },
+      datadog: { enabled: false, apiKey: '', appKey: '', site: '' },
+      supabase: { enabled: false, projectRef: '', apiKey: '' },
+    },
   })
 
   // --- Section 2: Agent config ---
   const agentConfig = ref({
+    provider: 'anthropic',
     apiKey: '',
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     systemPrompt: '',
   })
 

@@ -32,6 +32,10 @@ function isBinary(filePath) {
 }
 
 export async function execute(input, config) {
+  if (!config || !config.path) {
+    throw new Error('No codebase configured — select a source in the Connectors view')
+  }
+
   const basePath = resolve(config.path)
 
   try {
