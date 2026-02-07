@@ -1,5 +1,6 @@
 # Changelog
 
+- **0.1.8** — Multi-provider backend support (Anthropic, OpenAI, Google, Mistral)
 - **0.1.7** — Multi-provider model selection with researched current models
 - **0.1.6** — Connectors UI refinement (button selectors, multi-provider logs)
 - **0.1.5** — Post-review security and robustness fixes (P0–P3)
@@ -8,6 +9,35 @@
 - **0.1.2** — Implement `search_codebase` tool with file and content search
 - **0.1.1** — Implement `query_database` tool with read-only PostgreSQL queries
 - **0.1.0** — Initial project scaffolding with 3-tier architecture (frontend, backend, tool adapters)
+
+---
+
+## 0.1.8 — Multi-Provider Backend Support
+
+Implemented the provider abstraction layer to support all 4 LLM providers in the agentic loop.
+
+### Provider Abstraction (`backend/src/providers/`)
+- Created unified `ProviderAdapter` interface with 7 methods: `chat`, `translateTools`, `extractToolCalls`, `extractText`, `requiresToolExecution`, `formatToolResults`, `appendToConversation`
+- Factory pattern via `createProvider(config)` returns the appropriate adapter
+- JSDoc type definitions in `types.js` for IDE support
+
+### Provider Adapters
+- **Anthropic** (`anthropic.js`) — Uses canonical tool format, minimal translation
+- **OpenAI** (`openai.js`) — Function calling with `{ type: 'function', function: {...} }` structure
+- **Mistral** (`mistral.js`) — OpenAI-compatible with camelCase properties
+- **Google Gemini** (`google.js`) — Stateful chat reconstruction, `functionCall`/`functionResponse` format
+
+### Agentic Loop Refactor (`routes/chat.js`)
+- Now provider-agnostic: uses adapter methods instead of hardcoded Anthropic patterns
+- Same tool execution flow works across all providers
+- Provider-not-implemented errors return helpful 400 responses
+
+### Testing
+- Added `scripts/test-providers.js` for quick provider validation
+
+### Cleanup
+- Deleted legacy `backend/src/claude/` directory
+- Updated CLAUDE.md with new architecture diagram
 
 ---
 

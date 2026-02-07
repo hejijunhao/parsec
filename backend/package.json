@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@google/generative-ai": "^0.24.1",
+    "@mistralai/mistralai": "^1.14.0",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "fast-glob": "^3.3.3",
+    "openai": "^6.18.0",
     "pg": "^8.13.0"
   }
 }
