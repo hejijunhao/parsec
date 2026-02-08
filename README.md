@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/src/assets/Parsec Logo.svg" alt="Parsec Logo" width="120" />
+  <img src="frontend/src/assets/logo.svg" alt="Parsec Logo" width="120" />
 </p>
 
 <h1 align="center">Parsec</h1>
@@ -19,7 +19,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
-  <img src="https://img.shields.io/badge/version-0.1.8-green.svg" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.1.9-green.svg" alt="Version" />
   <img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg" alt="Node" />
 </p>
 
