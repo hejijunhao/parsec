@@ -1,5 +1,6 @@
 # Changelog
 
+- **0.1.9** — Fix GitHub URL codebase tool + backend logging
 - **0.1.8** — Multi-provider backend support (Anthropic, OpenAI, Google, Mistral)
 - **0.1.7** — Multi-provider model selection with researched current models
 - **0.1.6** — Connectors UI refinement (button selectors, multi-provider logs)
@@ -9,6 +10,25 @@
 - **0.1.2** — Implement `search_codebase` tool with file and content search
 - **0.1.1** — Implement `query_database` tool with read-only PostgreSQL queries
 - **0.1.0** — Initial project scaffolding with 3-tier architecture (frontend, backend, tool adapters)
+
+---
+
+## 0.1.9 — Fix GitHub URL Codebase Tool + Backend Logging
+
+Fixed the `search_codebase` tool so it works with GitHub URLs, and added colour-coded request/tool/loop logging to the backend terminal.
+
+### Bug Fix — GitHub URL Codebase Tool (`codebase.js`, `tools/index.js`)
+- **Root cause:** `resolveCodebaseConfig` was passing GitHub URLs straight through as local filesystem paths — `fs.access("https://www.github.com/...")` always fails
+- `resolveCodebaseConfig` now returns `{ source: 'github-url', url }` instead of `{ path: url }`
+- Added `ensureCloned()` in `codebase.js` — shallow clones the repo to `/tmp/parsec-repo-<hash>/` via `git clone --depth 1`
+- `normalizeGitHubUrl()` strips `www.`, trailing `.git`, and trailing `/` so all URL variants resolve to the same clone
+- In-memory clone cache (`Map`) avoids re-cloning across tool calls within the same process
+- On-disk `.git` check reuses clones that survived a process restart, with a fast `git pull --ff-only` to freshen
+
+### Backend Logging (`logger.js`, `index.js`, `routes/chat.js`)
+- Created `backend/src/logger.js` — colour-coded, timestamped log utility with `[REQ]` `[RES]` `[TOOL]` `[LOOP]` `[ERR]` prefixes
+- Added request-timing middleware in `index.js` — logs method, path, status code, and duration on every response
+- Added agentic loop logging in `chat.js` — logs provider/model on entry, each iteration, tool names requested, tool execution results (success/error), and final response summary (iterations, tool calls, response length)
 
 ---
 

@@ -1,6 +1,12 @@
 import fg from 'fast-glob'
 import { readFile, access } from 'fs/promises'
-import { resolve } from 'path'
+import { resolve, join } from 'path'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { tmpdir } from 'os'
+import { createHash } from 'crypto'
+
+const execFileAsync = promisify(execFile)
 
 const MAX_FILES = 100
 const MAX_CONTENT_SEARCH_FILES = 50
@@ -13,6 +19,46 @@ const BINARY_EXTENSIONS = new Set([
   '.pdf', '.exe', '.dll', '.so', '.dylib', '.wasm',
   '.mp3', '.mp4', '.avi', '.mov', '.webm',
 ])
+
+// In-memory cache: normalized URL → local clone path
+const cloneCache = new Map()
+
+function normalizeGitHubUrl(url) {
+  return url
+    .replace(/^https?:\/\/(?:www\.)?github\.com\//, 'https://github.com/')
+    .replace(/\.git$/, '')
+    .replace(/\/$/, '')
+}
+
+async function ensureCloned(url) {
+  const normalized = normalizeGitHubUrl(url)
+
+  if (cloneCache.has(normalized)) {
+    const cached = cloneCache.get(normalized)
+    try {
+      await access(join(cached, '.git'))
+      return cached
+    } catch {
+      cloneCache.delete(normalized)
+    }
+  }
+
+  const hash = createHash('sha256').update(normalized).digest('hex').slice(0, 12)
+  const cloneDir = join(tmpdir(), `parsec-repo-${hash}`)
+
+  try {
+    await access(join(cloneDir, '.git'))
+    // Already on disk from a previous process — pull latest
+    await execFileAsync('git', ['-C', cloneDir, 'pull', '--ff-only'], { timeout: 30_000 }).catch(() => {})
+    cloneCache.set(normalized, cloneDir)
+    return cloneDir
+  } catch {
+    // Need to clone
+    await execFileAsync('git', ['clone', '--depth', '1', normalized, cloneDir], { timeout: 60_000 })
+    cloneCache.set(normalized, cloneDir)
+    return cloneDir
+  }
+}
 
 export const definition = {
   name: 'search_codebase',
@@ -32,16 +78,24 @@ function isBinary(filePath) {
 }
 
 export async function execute(input, config) {
-  if (!config || !config.path) {
+  if (!config || (!config.path && !config.url)) {
     throw new Error('No codebase configured — select a source in the Connectors view')
   }
 
-  const basePath = resolve(config.path)
+  let basePath
 
-  try {
-    await access(basePath)
-  } catch {
-    throw new Error(`Codebase path does not exist or is not accessible: ${config.path}`)
+  if (config.source === 'github-url') {
+    if (!config.url) {
+      throw new Error('No GitHub URL provided — enter a repository URL in the Connectors view')
+    }
+    basePath = await ensureCloned(config.url)
+  } else {
+    basePath = resolve(config.path)
+    try {
+      await access(basePath)
+    } catch {
+      throw new Error(`Codebase path does not exist or is not accessible: ${config.path}`)
+    }
   }
 
   const pattern = input.pattern || '**/*'

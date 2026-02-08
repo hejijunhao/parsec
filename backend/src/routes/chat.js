@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { createProvider, implementedProviders } from '../providers/index.js'
 import { toolDefinitions, executeTool } from '../tools/index.js'
+import { log } from '../logger.js'
 
 export const chatRouter = Router()
 
@@ -25,6 +26,8 @@ chatRouter.post('/chat', async (req, res) => {
 
   // Default to anthropic if no provider specified
   const providerName = config.provider || 'anthropic'
+  const msgCount = incomingMessages?.length || 1
+  log.req(`provider=${providerName} model=${config.model} messages=${msgCount}`)
 
   try {
     // Create provider adapter (throws if provider not implemented)
@@ -43,21 +46,29 @@ chatRouter.post('/chat', async (req, res) => {
     // Provider-agnostic agentic loop
     while (iterations < MAX_ITERATIONS) {
       iterations++
+      log.loop(`iteration ${iterations}/${MAX_ITERATIONS} — calling ${providerName}`)
 
       response = await provider.chat(messages, tools, config.systemPrompt)
 
       // If the model didn't request any tools, we're done
-      if (!provider.requiresToolExecution(response)) break
+      if (!provider.requiresToolExecution(response)) {
+        log.loop(`iteration ${iterations} — model returned final response`)
+        break
+      }
 
       // Execute each tool the model requested
       const calls = provider.extractToolCalls(response)
+      log.loop(`iteration ${iterations} — model requested ${calls.length} tool(s): ${calls.map(c => c.name).join(', ')}`)
       const toolResults = []
 
       for (const call of calls) {
         let result
         try {
+          log.tool(`executing ${call.name}(${JSON.stringify(call.input).slice(0, 120)})`)
           result = await executeTool(call.name, call.input, connectors)
+          log.tool(`${call.name} ✓`)
         } catch (err) {
+          log.err(`${call.name} failed: ${err.message}`)
           result = { error: err.message }
         }
 
@@ -76,11 +87,13 @@ chatRouter.post('/chat', async (req, res) => {
     // Extract final text from the last response
     const finalText = provider.extractText(response)
 
+    log.res(`done — ${iterations} iteration(s), ${toolCalls.length} tool call(s), ${finalText.length} chars`)
     res.json({
       content: finalText,
       toolCalls,
     })
   } catch (err) {
+    log.err(err.message)
     // Check if it's a provider-not-implemented error
     if (err.message.includes('not yet implemented')) {
       return res.status(400).json({ error: err.message })

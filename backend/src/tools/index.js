@@ -36,9 +36,8 @@ function resolveLogsConfig(logs) {
 function resolveCodebaseConfig(codebase) {
   if (!codebase || !codebase.source) return null
 
-  // For github-url source, the url field contains the repo URL or local path
   if (codebase.source === 'github-url') {
-    return { path: codebase.url }
+    return { source: 'github-url', url: codebase.url }
   }
 
   // Other sources (github-token, trajan) are not yet implemented
